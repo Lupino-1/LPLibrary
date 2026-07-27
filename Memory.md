@@ -10,21 +10,21 @@ Agent: read this at session start. Update when we decide something important (AP
 ## Done
 - **Folia**: `FoliaManager`, `FoliaRunnable`, `TaskWrapper`
 - **Messages**: `MessageManager`, `ColorParser`
-  - init: `new MessageManager(plugin [, fileName [, saveDefaults]])`
-  - `saveDefaults=true` → `plugin.saveResource(path, false)` (path always `/`)
-  - maps: volatile + immutable `Map.copyOf`; optional future: single snapshot object for multi-map consistency
-  - placeholders: `Map<String, ?>` — `String` (před MiniMessage) i `Component` (Adventure replaceText po parse)
+    - init: `new MessageManager(plugin [, fileName [, saveDefaults]])`
+    - `saveDefaults=true` → `plugin.saveResource(path, false)` (path always `/`)
+    - maps: volatile + immutable `Map.copyOf`; optional future: single snapshot object for multi-map consistency
+    - placeholders: `Map<String, ?>` — `String` (před MiniMessage) i `Component` (Adventure replaceText po parse)
 - **Project memory**: `MEMORY.md` + `.cursor/rules/project-memory.mdc` (alwaysApply, auto-update)
 - **GUI** (`dev.lupino1.gui`):
-  - `Gui`, `PaginatedGui`, `GuiButton`, `GuiAction<T>`, `GuiHolder`, `GuiManager`, `GuiListener`
-  - `new Gui` / `new PaginatedGui` → `setItem` → `open`
-  - session: player PDC + holder; page per session on `GuiHolder`
-  - actions: `defaultAction` (default cancel), open/close/top/bottom (null), slot
-  - `PaginatedGui`: fixed `setItem` (nepočítá se) vs `addPageItem` (počítá se)
-  - content slots = size − fixed; `getPage`/`getMaxPages`/`next`/`previous`/`update`
-  - title: String i Component; placeholdery `%page%` `%max%` `%max_pages%` `%page_index%` (Component přes Adventure replaceText)
-  - `update(player)` na Gui i PaginatedGui (po setItem/remove v action)
-  - `ItemBuilder`; GUI item = ItemStack + slot/page action
+    - `Gui`, `PaginatedGui`, `GuiButton`, `GuiAction<T>`, `GuiHolder`, `GuiManager`, `GuiListener`
+    - `new Gui` / `new PaginatedGui` → `setItem` → `open`
+    - session: player PDC + holder; page per session on `GuiHolder`
+    - actions: `defaultAction` (default cancel), open/close/top/bottom (null), slot
+    - `PaginatedGui`: fixed `setItem` (nepočítá se) vs `addPageItem` (počítá se)
+    - content slots = size − fixed; `getPage`/`getMaxPages`/`next`/`previous`/`update`
+    - title: String i Component; placeholdery `%page%` `%max%` `%max_pages%` `%page_index%` (Component přes Adventure replaceText)
+    - `update(player)` na Gui i PaginatedGui (po setItem/remove v action)
+    - `ItemBuilder`; GUI item = ItemStack + slot/page action
 
 ## Planned / ideas (basic kit do všech pluginů)
 - **Command library** (priorita) — anotace/builder, subcmd, tab complete, sender checks, messages napojení
