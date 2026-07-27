@@ -9,6 +9,7 @@ public final class GuiHolder implements InventoryHolder {
 
     private final Gui gui;
     private final UUID sessionId;
+    private Inventory inventory;
     private int page;
 
     GuiHolder(Gui gui, UUID sessionId) {
