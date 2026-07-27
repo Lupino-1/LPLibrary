@@ -22,7 +22,7 @@ dependencies {
 // Konfigurace Java kompilace (Folia striktně vyžaduje Javu 17 nebo novější)
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
-    options.release.set(17)
+    options.release.set(21)
 }
 
 // Klíčový blok pro JitPack, který mu říká, jak má knihovnu správně vypublikovat

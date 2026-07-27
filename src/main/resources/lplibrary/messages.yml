@@ -1,0 +1,8 @@
+# LPLibrary messages template
+# Edit keys for your plugin. Reload with MessageManager#reload()
+
+prefix: "<gray>[<green>Server<gray>] <reset>"
+
+# example:
+# shop:
+#   bought: "<green>Bought %item%<gray>!"
