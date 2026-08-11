@@ -121,11 +121,9 @@ public class MessageManager {
             return Component.text(key);
         }
 
-        Component message = applyPlaceholders(raw, placeholders);
-        if (!prefix || prefixRaw.isEmpty()) {
-            return message;
-        }
-        return ColorParser.translateColors(prefixRaw).append(message);
+        // Concat before MiniMessage — Component.append after prefix <reset> ate message colors
+        String source = (prefix && !prefixRaw.isEmpty()) ? prefixRaw + raw : raw;
+        return applyPlaceholders(source, placeholders);
     }
 
     public List<Component> getList(String key) {
