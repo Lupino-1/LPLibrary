@@ -1,6 +1,7 @@
 package dev.lupino1.messages;
 
 import dev.lupino1.folia.FoliaManager;
+import dev.lupino1.placeholder.Placeholders;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -93,25 +94,49 @@ public class MessageManager {
     }
 
     public Component parse(String input) {
-        return ColorParser.translateColors(input);
+        return parse(input, null, null);
+    }
+
+    public Component parse(String input, Player player) {
+        return parse(input, player, null);
+    }
+
+    public Component parse(String input, Player player, Map<String, ?> placeholders) {
+        return applyPlaceholders(input, placeholders, player);
     }
 
     public Component get(String key) {
-        return get(key, null, true);
+        return get(key, null, true, null);
     }
 
     public Component get(String key, boolean prefix) {
-        return get(key, null, prefix);
+        return get(key, null, prefix, null);
     }
 
     public Component get(String key, Map<String, ?> placeholders) {
-        return get(key, placeholders, true);
+        return get(key, placeholders, true, null);
+    }
+
+    public Component get(String key, Player player) {
+        return get(key, null, true, player);
+    }
+
+    public Component get(String key, Map<String, ?> placeholders, Player player) {
+        return get(key, placeholders, true, player);
     }
 
     /**
      * @param placeholders values may be {@link String} or {@link Component}
      */
     public Component get(String key, Map<String, ?> placeholders, boolean prefix) {
+        return get(key, placeholders, prefix, null);
+    }
+
+    /**
+     * Flow: raw (+ optional prefix) → Map {@code %key%} → PAPI (when {@code player != null}) → MiniMessage
+     * → Component map replacements.
+     */
+    public Component get(String key, Map<String, ?> placeholders, boolean prefix, Player player) {
         Map<String, String> strings = this.strings;
         String prefixRaw = this.prefixRaw;
 
@@ -123,17 +148,25 @@ public class MessageManager {
 
         // Concat before MiniMessage — Component.append after prefix <reset> ate message colors
         String source = (prefix && !prefixRaw.isEmpty()) ? prefixRaw + raw : raw;
-        return applyPlaceholders(source, placeholders);
+        return applyPlaceholders(source, placeholders, player);
     }
 
     public List<Component> getList(String key) {
-        return getList(key, null);
+        return getList(key, null, null);
+    }
+
+    public List<Component> getList(String key, Map<String, ?> placeholders) {
+        return getList(key, placeholders, null);
+    }
+
+    public List<Component> getList(String key, Player player) {
+        return getList(key, null, player);
     }
 
     /**
      * @param placeholders values may be {@link String} or {@link Component}
      */
-    public List<Component> getList(String key, Map<String, ?> placeholders) {
+    public List<Component> getList(String key, Map<String, ?> placeholders, Player player) {
         Map<String, List<String>> lists = this.lists;
         Map<String, String> strings = this.strings;
 
@@ -141,7 +174,7 @@ public class MessageManager {
         if (rawList == null) {
             String single = strings.get(key);
             if (single != null) {
-                return List.of(applyPlaceholders(single, placeholders));
+                return List.of(applyPlaceholders(single, placeholders, player));
             }
             plugin.getLogger().warning("[Messages] Missing list key: " + key);
             return List.of(Component.text(key));
@@ -149,7 +182,7 @@ public class MessageManager {
 
         List<Component> result = new ArrayList<>(rawList.size());
         for (String line : rawList) {
-            result.add(applyPlaceholders(line, placeholders));
+            result.add(applyPlaceholders(line, placeholders, player));
         }
         return result;
     }
@@ -190,14 +223,20 @@ public class MessageManager {
         if (sender instanceof Player player && !player.isOnline()) {
             return;
         }
-        sender.sendMessage(get(key, placeholders, prefix));
+        Player player = sender instanceof Player p ? p : null;
+        sender.sendMessage(get(key, placeholders, prefix, player));
     }
 
     public void sendParsed(CommandSender sender, String message) {
+        sendParsed(sender, message, null);
+    }
+
+    public void sendParsed(CommandSender sender, String message, Map<String, ?> placeholders) {
         if (sender == null || message == null) {
             return;
         }
-        sender.sendMessage(ColorParser.translateColors(message));
+        Player player = sender instanceof Player p ? p : null;
+        sender.sendMessage(applyPlaceholders(message, placeholders, player));
     }
 
     public void actionBar(Player player, String key) {
@@ -212,7 +251,7 @@ public class MessageManager {
         if (player == null || !player.isOnline()) {
             return;
         }
-        player.sendActionBar(get(key, placeholders, prefix));
+        player.sendActionBar(get(key, placeholders, prefix, player));
     }
 
     public void broadcast(String key) {
@@ -223,8 +262,12 @@ public class MessageManager {
         broadcast(key, placeholders, true);
     }
 
+    /** Per online player (PAPI resolves per viewer). Console sees Map-only parse. */
     public void broadcast(String key, Map<String, ?> placeholders, boolean prefix) {
-        Bukkit.broadcast(get(key, placeholders, prefix));
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.sendMessage(get(key, placeholders, prefix, player));
+        }
+        Bukkit.getConsoleSender().sendMessage(get(key, placeholders, prefix, null));
     }
 
     private void ensureFile() {
@@ -240,27 +283,19 @@ public class MessageManager {
     }
 
     /**
-     * String placeholders → before MiniMessage. Component placeholders → Adventure {@code replaceText} after parse.
+     * String placeholders → PAPI → MiniMessage. Component placeholders → Adventure {@code replaceText} after parse.
      */
-    private static Component applyPlaceholders(String raw, Map<String, ?> placeholders) {
+    private static Component applyPlaceholders(String raw, Map<String, ?> placeholders, Player player) {
         if (raw == null) {
             return Component.empty();
         }
-        if (placeholders == null || placeholders.isEmpty()) {
-            return ColorParser.translateColors(raw);
-        }
 
-        String withStrings = raw;
-        for (Map.Entry<String, ?> entry : placeholders.entrySet()) {
-            Object value = entry.getValue();
-            if (value instanceof Component) {
-                continue;
-            }
-            String text = value == null ? "" : String.valueOf(value);
-            withStrings = withStrings.replace("%" + entry.getKey() + "%", text);
-        }
-
+        String withStrings = Placeholders.apply(raw, player, placeholders);
         Component result = ColorParser.translateColors(withStrings);
+
+        if (placeholders == null || placeholders.isEmpty()) {
+            return result;
+        }
         for (Map.Entry<String, ?> entry : placeholders.entrySet()) {
             Object value = entry.getValue();
             if (!(value instanceof Component component)) {

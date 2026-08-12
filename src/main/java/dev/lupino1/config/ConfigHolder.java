@@ -2,9 +2,11 @@ package dev.lupino1.config;
 
 import dev.lupino1.folia.FoliaManager;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -89,6 +91,23 @@ public final class ConfigHolder<T extends YamlConfig> {
 
     public String getString(String path, String def) {
         return require().getString(path, def);
+    }
+
+    /** {@link YamlConfig#getParsedString(String, Player)} on current snapshot. */
+    public String getParsedString(String path, Player player) {
+        return require().getParsedString(path, player);
+    }
+
+    public String getParsedString(String path, Player player, Map<String, ?> placeholders) {
+        return require().getParsedString(path, player, placeholders);
+    }
+
+    public String getParsedString(String path, String def, Player player) {
+        return require().getParsedString(path, def, player);
+    }
+
+    public String getParsedString(String path, String def, Player player, Map<String, ?> placeholders) {
+        return require().getParsedString(path, def, player, placeholders);
     }
 
     public int getInt(String path) {

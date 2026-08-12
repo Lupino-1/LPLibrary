@@ -4,7 +4,10 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import dev.lupino1.placeholder.Placeholders;
 
 import java.io.File;
 import java.io.IOException;
@@ -168,6 +171,26 @@ public abstract class YamlConfig {
     public String getString(String path, String def) {
         ensureYaml();
         return yaml.getString(path, def);
+    }
+
+    /**
+     * {@link #getString(String)} then Map {@code %key%} + PlaceholderAPI (soft).
+     * Returns raw string — no MiniMessage.
+     */
+    public String getParsedString(String path, Player player) {
+        return getParsedString(path, player, null);
+    }
+
+    public String getParsedString(String path, Player player, Map<String, ?> placeholders) {
+        return Placeholders.apply(getString(path), player, placeholders);
+    }
+
+    public String getParsedString(String path, String def, Player player) {
+        return getParsedString(path, def, player, null);
+    }
+
+    public String getParsedString(String path, String def, Player player, Map<String, ?> placeholders) {
+        return Placeholders.apply(getString(path, def), player, placeholders);
     }
 
     public int getInt(String path) {
