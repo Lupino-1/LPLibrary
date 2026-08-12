@@ -30,21 +30,25 @@ import java.util.function.Consumer;
  */
 public final class LPCommand {
 
-    private static final String KEY_NO_PERMISSION = "command.no-permission";
-    private static final String KEY_PLAYER_ONLY = "command.player-only";
-    private static final String KEY_CONSOLE_ONLY = "command.console-only";
-    private static final String KEY_USAGE = "command.usage";
+    private static final String FALLBACK_NO_PERMISSION = "<red>No permission.";
+    private static final String FALLBACK_PLAYER_ONLY = "<red>Only players can use this command.";
+    private static final String FALLBACK_CONSOLE_ONLY = "<red>Only the console can use this command.";
 
     private final JavaPlugin plugin;
     private final String name;
     private final boolean root;
 
     private String permission;
+    private String noPermissionMessageKey;
     private SenderType senderType = SenderType.ANY;
+    private String playerOnlyMessageKey;
+    private String consoleOnlyMessageKey;
     private String description = "";
     private String usage = "";
+    private String usageMessageKey;
     private List<String> aliases = List.of();
     private MessageManager messages;
+    private CommandMessageKeys messageKeys = CommandMessageKeys.defaults();
     private CommandHandler handler;
     private TabHandler tabHandler;
     private final Map<String, LPCommand> children = new LinkedHashMap<>();
@@ -72,13 +76,34 @@ public final class LPCommand {
         return this;
     }
 
+    /** Optional {@link MessageManager} key for the no-permission message on this node. */
+    public LPCommand permission(String permission, String noPermissionMessageKey) {
+        this.permission = permission;
+        this.noPermissionMessageKey = blankToNull(noPermissionMessageKey);
+        return this;
+    }
+
     public LPCommand playerOnly() {
         this.senderType = SenderType.PLAYER;
         return this;
     }
 
+    /** Optional {@link MessageManager} key for the player-only message on this node. */
+    public LPCommand playerOnly(String messageKey) {
+        this.senderType = SenderType.PLAYER;
+        this.playerOnlyMessageKey = blankToNull(messageKey);
+        return this;
+    }
+
     public LPCommand consoleOnly() {
         this.senderType = SenderType.CONSOLE;
+        return this;
+    }
+
+    /** Optional {@link MessageManager} key for the console-only message on this node. */
+    public LPCommand consoleOnly(String messageKey) {
+        this.senderType = SenderType.CONSOLE;
+        this.consoleOnlyMessageKey = blankToNull(messageKey);
         return this;
     }
 
@@ -94,6 +119,13 @@ public final class LPCommand {
 
     public LPCommand usage(String usage) {
         this.usage = usage == null ? "" : usage;
+        return this;
+    }
+
+    /** Optional {@link MessageManager} key for the usage message on this node. */
+    public LPCommand usage(String usage, String usageMessageKey) {
+        this.usage = usage == null ? "" : usage;
+        this.usageMessageKey = blankToNull(usageMessageKey);
         return this;
     }
 
@@ -122,6 +154,17 @@ public final class LPCommand {
         return this;
     }
 
+    /**
+     * Root only — change default message keys for the whole tree.
+     * Per-node overrides: {@link #permission(String, String)}, {@link #usage(String, String)}, etc.
+     */
+    public LPCommand commandMessageKeys(CommandMessageKeys keys) {
+        requireRoot("commandMessageKeys");
+        this.messageKeys = keys == null ? CommandMessageKeys.defaults() : keys;
+        propagateMessageKeys(this, this.messageKeys);
+        return this;
+    }
+
     public LPCommand execute(CommandHandler handler) {
         this.handler = handler;
         return this;
@@ -135,7 +178,7 @@ public final class LPCommand {
     public LPCommand sub(String name, Consumer<LPCommand> configure) {
         Objects.requireNonNull(configure, "configure");
         LPCommand child = new LPCommand(plugin, name, false);
-        child.messages = this.messages;
+        inheritTreeConfig(child);
         configure.accept(child);
         return sub(child);
     }
@@ -143,7 +186,7 @@ public final class LPCommand {
     public LPCommand sub(LPSubCommand subCommand) {
         Objects.requireNonNull(subCommand, "subCommand");
         LPCommand child = new LPCommand(plugin, subCommand.name(), false);
-        child.messages = this.messages;
+        inheritTreeConfig(child);
         subCommand.install(child);
         return sub(child);
     }
@@ -341,11 +384,11 @@ public final class LPCommand {
 
     private boolean checkSender(CommandSender sender, MessageManager messages) {
         if (senderType == SenderType.PLAYER && !(sender instanceof Player)) {
-            sendKeyed(sender, messages, KEY_PLAYER_ONLY, "<red>Only players can use this command.");
+            sendKeyed(sender, messages, resolvePlayerOnlyKey(), FALLBACK_PLAYER_ONLY, Map.of());
             return false;
         }
         if (senderType == SenderType.CONSOLE && !(sender instanceof ConsoleCommandSender)) {
-            sendKeyed(sender, messages, KEY_CONSOLE_ONLY, "<red>Only the console can use this command.");
+            sendKeyed(sender, messages, resolveConsoleOnlyKey(), FALLBACK_CONSOLE_ONLY, Map.of());
             return false;
         }
         return true;
@@ -356,19 +399,14 @@ public final class LPCommand {
             return true;
         }
         Map<String, String> ph = Map.of("permission", permission);
-        if (messages != null && messages.getRaw(KEY_NO_PERMISSION) != null) {
-            messages.send(sender, KEY_NO_PERMISSION, ph);
-        } else {
-            sender.sendMessage(ColorParser.translateColors("<red>No permission."));
-        }
+        sendKeyed(sender, messages, resolveNoPermissionKey(), FALLBACK_NO_PERMISSION, ph);
         return false;
     }
 
     private void sendUsage(CommandSender sender, LPCommand node) {
         String usageText = node.usage.isEmpty() ? "/" + node.name : node.usage;
         Map<String, String> ph = Map.of("usage", usageText);
-        if (messages != null && messages.getRaw(KEY_USAGE) != null) {
-            messages.send(sender, KEY_USAGE, ph);
+        if (sendKeyed(sender, messages, node.resolveUsageKey(), null, ph)) {
             return;
         }
         if (!node.usage.isEmpty()) {
@@ -383,12 +421,47 @@ public final class LPCommand {
         sender.sendMessage(ColorParser.translateColors("<red>Unknown subcommand: <white>" + token));
     }
 
-    private static void sendKeyed(CommandSender sender, MessageManager messages, String key, String fallback) {
+    private static boolean sendKeyed(
+            CommandSender sender,
+            MessageManager messages,
+            String key,
+            String fallback,
+            Map<String, String> placeholders
+    ) {
         if (messages != null && messages.getRaw(key) != null) {
-            messages.send(sender, key);
-        } else {
-            sender.sendMessage(ColorParser.translateColors(fallback));
+            messages.send(sender, key, placeholders);
+            return true;
         }
+        if (fallback != null) {
+            sender.sendMessage(ColorParser.translateColors(fallback));
+            return true;
+        }
+        return false;
+    }
+
+    private String resolveNoPermissionKey() {
+        return noPermissionMessageKey != null ? noPermissionMessageKey : messageKeys.noPermission();
+    }
+
+    private String resolveUsageKey() {
+        return usageMessageKey != null ? usageMessageKey : messageKeys.usage();
+    }
+
+    private String resolvePlayerOnlyKey() {
+        return playerOnlyMessageKey != null ? playerOnlyMessageKey : messageKeys.playerOnly();
+    }
+
+    private String resolveConsoleOnlyKey() {
+        return consoleOnlyMessageKey != null ? consoleOnlyMessageKey : messageKeys.consoleOnly();
+    }
+
+    private void inheritTreeConfig(LPCommand child) {
+        child.messages = this.messages;
+        child.messageKeys = this.messageKeys;
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     private void requireRoot(String method) {
@@ -401,6 +474,13 @@ public final class LPCommand {
         node.messages = messages;
         for (LPCommand child : node.children.values()) {
             propagateMessages(child, messages);
+        }
+    }
+
+    private static void propagateMessageKeys(LPCommand node, CommandMessageKeys keys) {
+        node.messageKeys = keys;
+        for (LPCommand child : node.children.values()) {
+            propagateMessageKeys(child, keys);
         }
     }
 
