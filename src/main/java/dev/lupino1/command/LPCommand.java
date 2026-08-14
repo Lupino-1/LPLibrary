@@ -394,7 +394,8 @@ public final class LPCommand {
         return true;
     }
 
-    private boolean checkPermission(CommandSender sender, MessageManager messages) {
+    /** Package: Bukkit root {@code testPermission} + tree gate. */
+    boolean checkPermission(CommandSender sender, MessageManager messages) {
         if (permission == null || permission.isEmpty() || sender.hasPermission(permission)) {
             return true;
         }

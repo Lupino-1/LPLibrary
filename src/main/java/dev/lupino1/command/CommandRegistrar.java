@@ -78,7 +78,11 @@ final class CommandRegistrar {
             setDescription(root.description());
             setUsage(root.usage().isEmpty() ? "/" + root.name() : root.usage());
             setAliases(new ArrayList<>(root.aliases()));
-            // Permissions checked in LPCommand tree (custom messages / sub-perms).
+            String perm = root.permission();
+            if (perm != null && !perm.isEmpty()) {
+                // Hides root from / tab when missing; sub-perms still checked in LPCommand tree.
+                setPermission(perm);
+            }
         }
 
         @Override
@@ -86,9 +90,21 @@ final class CommandRegistrar {
             return plugin;
         }
 
+        /**
+         * Same deny text as the command tree ({@link MessageManager} / defaults).
+         * Avoids Bukkit's vanilla permission message.
+         */
+        @Override
+        public boolean testPermission(@NotNull CommandSender target) {
+            if (testPermissionSilent(target)) {
+                return true;
+            }
+            root.checkPermission(target, root.messages());
+            return false;
+        }
+
         @Override
         public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
-            // Bukkit already checks getPermission() when set; still run tree checks for sub-perms
             return root.execute(sender, commandLabel, args);
         }
 
