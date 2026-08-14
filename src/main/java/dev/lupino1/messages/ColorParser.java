@@ -4,6 +4,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public final class ColorParser {
@@ -37,6 +39,17 @@ public final class ColorParser {
         formatted = replaceLegacyCodes(formatted);
 
         return MINI_MESSAGE.deserialize(formatted);
+    }
+
+    public static List<Component> translateColors(List<String> input) {
+        if (input == null || input.isEmpty()) {
+            return List.of();
+        }
+        List<Component> out = new ArrayList<>(input.size());
+        for (String line : input) {
+            out.add(translateColors(line));
+        }
+        return out;
     }
 
     public static String translateLegacy(String input) {

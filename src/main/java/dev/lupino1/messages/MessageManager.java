@@ -217,14 +217,30 @@ public class MessageManager {
     }
 
     public void send(CommandSender sender, String key, Map<String, ?> placeholders, boolean prefix) {
-        if (sender == null) {
+        if (!canSend(sender)) {
             return;
         }
-        if (sender instanceof Player player && !player.isOnline()) {
+        if (lists.containsKey(key) && !strings.containsKey(key)) {
+            sendList(sender, key, placeholders);
             return;
         }
         Player player = sender instanceof Player p ? p : null;
         sender.sendMessage(get(key, placeholders, prefix, player));
+    }
+
+    /** YAML list key — one chat line each. No prefix (same as {@link #getList}). */
+    public void sendList(CommandSender sender, String key) {
+        sendList(sender, key, null);
+    }
+
+    public void sendList(CommandSender sender, String key, Map<String, ?> placeholders) {
+        if (!canSend(sender)) {
+            return;
+        }
+        Player player = sender instanceof Player p ? p : null;
+        for (Component line : getList(key, placeholders, player)) {
+            sender.sendMessage(line);
+        }
     }
 
     public void sendParsed(CommandSender sender, String message) {
@@ -232,11 +248,35 @@ public class MessageManager {
     }
 
     public void sendParsed(CommandSender sender, String message, Map<String, ?> placeholders) {
-        if (sender == null || message == null) {
+        if (!canSend(sender) || message == null) {
             return;
         }
         Player player = sender instanceof Player p ? p : null;
         sender.sendMessage(applyPlaceholders(message, placeholders, player));
+    }
+
+    public void sendParsed(CommandSender sender, List<String> messages) {
+        sendParsed(sender, messages, null);
+    }
+
+    public void sendParsed(CommandSender sender, List<String> messages, Map<String, ?> placeholders) {
+        if (!canSend(sender) || messages == null || messages.isEmpty()) {
+            return;
+        }
+        Player player = sender instanceof Player p ? p : null;
+        for (String line : messages) {
+            if (line == null) {
+                continue;
+            }
+            sender.sendMessage(applyPlaceholders(line, placeholders, player));
+        }
+    }
+
+    private static boolean canSend(CommandSender sender) {
+        if (sender == null) {
+            return false;
+        }
+        return !(sender instanceof Player player) || player.isOnline();
     }
 
     public void actionBar(Player player, String key) {

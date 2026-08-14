@@ -8,6 +8,7 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -119,6 +120,15 @@ public final class CommandContext {
         }
     }
 
+    public void reply(List<String> miniMessages) {
+        if (miniMessages == null) {
+            return;
+        }
+        for (String line : miniMessages) {
+            reply(line);
+        }
+    }
+
     public void send(String messageKey) {
         send(messageKey, null, true);
     }
@@ -133,5 +143,17 @@ public final class CommandContext {
             return;
         }
         messages.send(sender, messageKey, placeholders, prefix);
+    }
+
+    public void sendList(String messageKey) {
+        sendList(messageKey, null);
+    }
+
+    public void sendList(String messageKey, Map<String, ?> placeholders) {
+        if (messages == null) {
+            reply("<red>Missing MessageManager (key: " + messageKey + ")");
+            return;
+        }
+        messages.sendList(sender, messageKey, placeholders);
     }
 }
