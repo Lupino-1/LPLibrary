@@ -20,6 +20,8 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
+    compileOnly("com.velocitypowered:velocity-api:3.3.0-SNAPSHOT")
+    compileOnly("org.yaml:snakeyaml:2.2")
     compileOnly("me.clip:placeholderapi:2.11.6")
 }
 

@@ -7,7 +7,9 @@ import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import dev.lupino1.messages.ColorParser;
 import dev.lupino1.placeholder.Placeholders;
+import net.kyori.adventure.text.Component;
 
 import java.io.File;
 import java.io.IOException;
@@ -174,15 +176,15 @@ public abstract class YamlConfig {
     }
 
     /**
-     * {@link #getString(String)} then Map {@code %key%} + PlaceholderAPI (soft).
-     * Returns raw string — no MiniMessage.
+     * {@link #getString(String)} then Map {@code %key%} + PlaceholderAPI (soft) +
+     * {@link ColorParser#translateLegacy(String)} ({@code &}/hex/MiniMessage → {@code §}).
      */
     public String getParsedString(String path, Player player) {
         return getParsedString(path, player, null);
     }
 
     public String getParsedString(String path, Player player, Map<String, ?> placeholders) {
-        return Placeholders.apply(getString(path), player, placeholders);
+        return colorLegacy(Placeholders.apply(getString(path), player, placeholders));
     }
 
     public String getParsedString(String path, String def, Player player) {
@@ -190,7 +192,30 @@ public abstract class YamlConfig {
     }
 
     public String getParsedString(String path, String def, Player player, Map<String, ?> placeholders) {
-        return Placeholders.apply(getString(path, def), player, placeholders);
+        return colorLegacy(Placeholders.apply(getString(path, def), player, placeholders));
+    }
+
+    private static String colorLegacy(String parsed) {
+        return parsed == null ? null : ColorParser.translateLegacy(parsed);
+    }
+
+    /**
+     * Same as {@link #getParsedString(String, Player)} but {@link ColorParser#translateColors(String)}.
+     */
+    public Component getParsedComponent(String path, Player player) {
+        return getParsedComponent(path, player, null);
+    }
+
+    public Component getParsedComponent(String path, Player player, Map<String, ?> placeholders) {
+        return ColorParser.translateColors(Placeholders.apply(getString(path), player, placeholders));
+    }
+
+    public Component getParsedComponent(String path, String def, Player player) {
+        return getParsedComponent(path, def, player, null);
+    }
+
+    public Component getParsedComponent(String path, String def, Player player, Map<String, ?> placeholders) {
+        return ColorParser.translateColors(Placeholders.apply(getString(path, def), player, placeholders));
     }
 
     public int getInt(String path) {

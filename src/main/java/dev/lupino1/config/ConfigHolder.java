@@ -1,6 +1,7 @@
 package dev.lupino1.config;
 
 import dev.lupino1.folia.FoliaManager;
+import net.kyori.adventure.text.Component;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -108,6 +109,22 @@ public final class ConfigHolder<T extends YamlConfig> {
 
     public String getParsedString(String path, String def, Player player, Map<String, ?> placeholders) {
         return require().getParsedString(path, def, player, placeholders);
+    }
+
+    public Component getParsedComponent(String path, Player player) {
+        return require().getParsedComponent(path, player);
+    }
+
+    public Component getParsedComponent(String path, Player player, Map<String, ?> placeholders) {
+        return require().getParsedComponent(path, player, placeholders);
+    }
+
+    public Component getParsedComponent(String path, String def, Player player) {
+        return require().getParsedComponent(path, def, player);
+    }
+
+    public Component getParsedComponent(String path, String def, Player player, Map<String, ?> placeholders) {
+        return require().getParsedComponent(path, def, player, placeholders);
     }
 
     public int getInt(String path) {
