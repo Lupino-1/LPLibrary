@@ -34,6 +34,36 @@ public final class ItemBuilder {
         return new ItemBuilder(item);
     }
 
+    /**
+     * Material name ({@code DIAMOND}) or http(s) texture URL → skull.
+     * Invalid → {@link Material#STONE}.
+     */
+    public static ItemBuilder of(String input) {
+        return new ItemBuilder(ItemParser.parse(input));
+    }
+
+    public static ItemBuilder of(String input, Material fallback) {
+        return new ItemBuilder(ItemParser.parse(input, fallback));
+    }
+
+    /**
+     * Player head with skin from a Minecraft texture URL
+     * (e.g. {@code http://textures.minecraft.net/texture/...}).
+     */
+    public static ItemBuilder ofSkull(String textureUrl) {
+        return new ItemBuilder(Skulls.fromUrl(Objects.requireNonNull(textureUrl, "textureUrl")));
+    }
+
+    /**
+     * Sets this stack to {@link Material#PLAYER_HEAD} with the given texture URL.
+     */
+    public ItemBuilder skullUrl(String textureUrl) {
+        ItemStack skull = Skulls.fromUrl(Objects.requireNonNull(textureUrl, "textureUrl"));
+        item.setType(Material.PLAYER_HEAD);
+        item.setItemMeta(skull.getItemMeta());
+        return this;
+    }
+
     public ItemBuilder amount(int amount) {
         item.setAmount(Math.max(1, amount));
         return this;
