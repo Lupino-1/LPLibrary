@@ -2,6 +2,7 @@ package dev.lupino1.item;
 
 import dev.lupino1.messages.ColorParser;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
@@ -70,7 +71,7 @@ public final class ItemBuilder {
     }
 
     public ItemBuilder name(Component name) {
-        return meta(meta -> meta.displayName(name));
+        return meta(meta -> meta.displayName(noItalic(name)));
     }
 
     public ItemBuilder name(String name) {
@@ -82,7 +83,14 @@ public final class ItemBuilder {
     }
 
     public ItemBuilder lore(List<Component> lines) {
-        return meta(meta -> meta.lore(lines == null ? List.of() : List.copyOf(lines)));
+        if (lines == null || lines.isEmpty()) {
+            return meta(meta -> meta.lore(List.of()));
+        }
+        List<Component> normalized = new ArrayList<>(lines.size());
+        for (Component line : lines) {
+            normalized.add(noItalic(line));
+        }
+        return meta(meta -> meta.lore(List.copyOf(normalized)));
     }
 
     public ItemBuilder lore(String... lines) {
@@ -102,10 +110,14 @@ public final class ItemBuilder {
                 lore = new ArrayList<>(lore);
             }
             for (String line : lines) {
-                lore.add(ColorParser.translateColors(line));
+                lore.add(noItalic(ColorParser.translateColors(line)));
             }
             meta.lore(lore);
         });
+    }
+
+    private static Component noItalic(Component component) {
+        return component.decoration(TextDecoration.ITALIC, false);
     }
 
     public ItemBuilder glow(boolean glow) {
