@@ -12,7 +12,10 @@ import org.bukkit.inventory.Inventory;
 
 final class GuiListener implements Listener {
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+
+
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = false)
     public void onClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
@@ -47,7 +50,7 @@ final class GuiListener implements Listener {
         gui.handleBottomClick(event);
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = false)
     public void onDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
@@ -76,7 +79,7 @@ final class GuiListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = false)
     public void onClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
